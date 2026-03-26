@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f0f13;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 14px;
+      font-family: 'Segoe UI', sans-serif;
+      color: #f0ece4;
+    }
+
+    #video {
+      width: 100%;
+      max-width: 480px;
+      border-radius: 12px;
+      background: #1c1c24;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      border: 2px solid #2e2e3e;
+      display: block;
+    }
+
+    .controls { display: flex; gap: 10px; }
+
+    button {
+      background: #f5c518;
+      color: #0f0f13;
+      border: none;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 10px 24px;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    button:hover { opacity: .85; }
+
+    button.sec {
+      background: transparent;
+      color: #888;
+      border: 1.5px solid #2e2e3e;
+    }
+    button.sec:hover { color: #f0ece4; border-color: #555; }
+
+    #snapshot-wrapper { display: none; flex-direction: column; align-items: center; gap: 8px; }
+    #snapshot { max-width: 480px; width: 100%; border-radius: 12px; border: 2px solid #f5c518; }
+    .snap-label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #f5c518; }
+
+    #error {
+      color: #e05252;
+      font-size: 13px;
+      text-align: center;
+      max-width: 380px;
+      line-height: 1.6;
+    }
+
+    canvas { display: none; }
+  </style>
+</head>
+<body>
+
+  <video id="video" autoplay playsinline muted></video>
+
+  <div class="controls">
+    <button onclick="snap()">📸 Snap</button>
+    <button class="sec" onclick="window.parent.postMessage('close','*')">✕ Close</button>
+  </div>
+
+  <div id="snapshot-wrapper">
+    <div class="snap-label">Last snapshot</div>
+    <img id="snapshot" />
+  </div>
+
+  <div id="error"></div>
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const errEl = document.getElementById('error');
+
+    async function startCamera() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        errEl.textContent = 'Camera API not supported in this browser.';
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        document.getElementById('video').srcObject = stream;
+      } catch (err) {
+        if (err.name === 'NotAllowedError') {
+          errEl.innerHTML =
+            '🚫 Camera permission denied.<br>' +
+            'Click the 🔒 lock in your address bar → Camera → Allow → Reload.';
+        } else if (err.name === 'NotFoundError') {
+          errEl.textContent = '📷 No camera found on this device.';
+        } else {
+          errEl.textContent = err.name + ': ' + err.message;
+        }
+      }
+    }
+
+    function snap() {
+      const video  = document.getElementById('video');
+      const canvas = document.getElementById('canvas');
+      const img    = document.getElementById('snapshot');
+      const wrap   = document.getElementById('snapshot-wrapper');
+      canvas.width  = video.videoWidth  || 640;
+      canvas.height = video.videoHeight || 480;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      img.src = canvas.toDataURL('image/png');
+      wrap.style.display = 'flex';
+    }
+
+    startCamera();
+  </script>
+</body>
+</html>
